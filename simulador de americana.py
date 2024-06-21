@@ -1,37 +1,54 @@
 import pygame
 import random
+import math
 
 pygame.init()
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1540
+SCREEN_HEIGHT = 818
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Simulador de motoristas de Americana")
+pygame.display.set_caption("Americana Driver Simulator")
 
 GRAY = (128, 128, 128)
 WHITE = (255, 255, 255)
 ORANGE = (255, 70, 0)
-BLUE = (0,0,255)
-RED = (255,0,0)
-BLACK = (0,0,0)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
 
 class PlayerCar(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((50, 80))
         self.image.fill(BLUE)
+        pygame.draw.rect(self.image, BLACK, [0, 60, 10, 20])
+        pygame.draw.rect(self.image, BLACK, [40, 60, 10, 20])
+        pygame.draw.rect(self.image, BLACK, [0, 0, 10, 20])
+        pygame.draw.rect(self.image, BLACK, [40, 0, 10, 20])
+        self.original_image = self.image.copy()
         self.rect = self.image.get_rect()
         self.rect.centerx = SCREEN_WIDTH // 2
         self.rect.bottom = SCREEN_HEIGHT - 10
-        self.speed = 7
+        self.speed = 8
+        self.wheel_angle = 0  # ângulo inicial das rodas
 
     def update(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
             self.rect.x -= self.speed
-        if keys[pygame.K_RIGHT]:
+            self.wheel_angle = 45  # girar as rodas para a esquerda
+        elif keys[pygame.K_RIGHT]:
             self.rect.x += self.speed
+            self.wheel_angle = -45  # girar as rodas para a direita
+        else:
+            self.wheel_angle = 0  # manter as rodas retas quando não estiver virando
+
         self.rect.x = max(0, min(self.rect.x, SCREEN_WIDTH - self.rect.width))
+
+    def draw(self, surface):
+        rotated_image = pygame.transform.rotate(self.original_image, self.wheel_angle)
+        rotated_rect = rotated_image.get_rect(center=self.rect.center)
+        surface.blit(rotated_image, rotated_rect)
 
 class EnemyCar(pygame.sprite.Sprite):
     def __init__(self):
@@ -41,7 +58,12 @@ class EnemyCar(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = random.randint(0, SCREEN_WIDTH - self.rect.width)
         self.rect.y = -self.rect.height
-        self.speed = random.randint(5, 10)
+        self.speed = random.randint(55, 55)
+        pygame.draw.rect(self.image, BLACK, [0, 50, 10, 20])
+        pygame.draw.rect(self.image, BLACK, [30, 50, 10, 20])
+        pygame.draw.rect(self.image, BLACK, [0, 0, 10, 20])
+        pygame.draw.rect(self.image, BLACK, [30, 0, 10, 20])
+        
 
     def update(self):
         self.rect.y += self.speed
@@ -65,9 +87,9 @@ def draw_text(surface, text, size, x, y):
 
 def game_over(points):
     SCREEN.fill(RED)
-    draw_text(SCREEN, "VOCÊ MORREU", 50, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
-    draw_text(SCREEN, f"Pontuação: {points}", 30, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-    draw_text(SCREEN, "Pressione qualquer tecla para tentar novamente", 30, SCREEN_WIDTH // 2, SCREEN_HEIGHT * 3 // 4)
+    draw_text(SCREEN, "GAME OVER", 50, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+    draw_text(SCREEN, f"Sua pontuação: {points}", 30, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+    draw_text(SCREEN, "Aperte qualquer botão para reiniciar", 30, SCREEN_WIDTH // 2, SCREEN_HEIGHT * 3 // 4)
     pygame.display.flip()
 
 player = PlayerCar()
@@ -112,8 +134,8 @@ while running:
 
         all_sprites.update()
 
-        if pygame.time.get_ticks() - start_time >= 1000:
-            points += 10
+        if pygame.time.get_ticks() - start_time >= 100:
+            points += 1
             start_time = pygame.time.get_ticks()
 
         collisions = pygame.sprite.spritecollide(player, enemies, False)
